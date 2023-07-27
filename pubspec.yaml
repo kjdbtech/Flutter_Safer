@@ -18,7 +18,10 @@ dependencies:
   flutter:
     sdk: flutter
 
-  sms_advanced:
+  sms_advanced:       # 메세지 패키지
+  geolocator: ^7.0.3  # gps 패키지
+  location: ^4.1.1   # 백그라운드에서 위치 정보 업데이트 패키지
+  flutter_blue:     # 블루투스
 
 
   # The following adds the Cupertino Icons font to your application.
