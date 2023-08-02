@@ -116,49 +116,70 @@ class _RemoteControlScreenState extends State<RemoteControlScreen> with SingleTi
         title: Text('Remote Control'),
       ),
       body: Center(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
           children: [
-            Container(
-              margin: EdgeInsets.only(top: 50,right: 50),
-              child: IconButton(onPressed: _togglePower, icon: Icon(Icons.power_settings_new, color: Power? Colors.blue : Colors.black45,), iconSize: 140,),
-            ),
-            SizedBox(height: 20),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.start,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  '\n바람세기 조절',
-                  style: TextStyle(fontSize: 23),
+                Column(
+                  children: [
+                    Container(
+                      margin: EdgeInsets.only(top:50,right: 30),
+                      child: IconButton (
+                        onPressed: _togglePower,
+                        icon: Icon(
+                          Icons.power_settings_new,
+                          color: Power? Colors.blue : Colors.black45,
+                        ),
+                        iconSize: 140,
+                      ),
+                    )
+                  ],
                 ),
-                Container(
-                  margin: EdgeInsets.only(top: 10),
-                  decoration: BoxDecoration(
-                      border: Border.all(color: Power? Colors.blue : Colors.black45, width: 3),
-                      borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: Column(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.arrow_drop_up),
-                        onPressed: Power? _increaseFanSpeed : null,
-                        iconSize: 50,
-                      ),
-                      Text(
-                        '$_fanSpeedLevel',
-                        style: TextStyle(fontSize: 40),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.arrow_drop_down),
-                        onPressed: Power? _decreaseFanSpeed : null,
-                        iconSize: 50,
-                      ),
-                    ]
-                  )
-                )
+                Column(
+                  children: [
+                    Text(
+                      '\n바람세기 조절',
+                      style: TextStyle(fontSize: 23),
+                    ),
+                    Container(
+                        margin: EdgeInsets.only(top: 10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Power? Colors.blue : Colors.black45, width: 3),
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: Column(
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.arrow_drop_up),
+                                onPressed: Power? _increaseFanSpeed : null,
+                                iconSize: 50,
+                              ),
+                              Text(
+                                '$_fanSpeedLevel',
+                                style: TextStyle(fontSize: 40),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.arrow_drop_down),
+                                onPressed: Power? _decreaseFanSpeed : null,
+                                iconSize: 50,
+                              ),
+                            ]
+                        )
+                    )
+                  ],
+                ),
               ],
             ),
+            Container(
+              child: Row(
+                children: [
+                  ElevatedButton(onPressed: _scanDevices, child: Text('블루투스 스캔')),
+                  ElevatedButton(onPressed: _connectToDevice, child: Text('블루투스 연결')),
+                ],
+              ),
+            )
           ],
         ),
       ),

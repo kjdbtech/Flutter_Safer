@@ -33,7 +33,7 @@ class _SaferState extends State<Safer> {
   List<String> recipients = [];
 
   var gpsSwitch = true;
-  var msgSwitch = false;
+  var titleSwitch = false;
 
   double latitude = 0;
   double longitude = 0;
@@ -45,6 +45,8 @@ class _SaferState extends State<Safer> {
 
   ValueNotifier<bool> isDialOpen = ValueNotifier(false);    // 플러팅 버튼('+') on/off
 
+  TextEditingController _textEditingController = TextEditingController();
+
   // FlutterBlue flutterBlue = FlutterBlue.instance;     // 블루투스 인스턴스
   // BluetoothDevice? selectedDevice;
   // BluetoothCharacteristic? characteristic;
@@ -54,14 +56,27 @@ class _SaferState extends State<Safer> {
 
 
 
+
   @override
   void initState() {
     super.initState();
     setState(() {});
     getLocation();
-    if(mounted){
-      _startLocationUpdates();
-    }
+    // if(mounted){
+    //   _startLocationUpdates();
+    // }
+
+  }
+
+  // 토스트팝업창 (문자 길이 제한 알림)
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+    );
   }
 
 
@@ -95,17 +110,27 @@ class _SaferState extends State<Safer> {
     String message = Msg;
     SmsMessage smsMessage;
 
-    if(msgSwitch && !gpsSwitch) {
+    if(titleSwitch && !gpsSwitch) {
+      message = "[Safer]\n\n$Msg";
       smsMessage = new SmsMessage(address, message); // 번호와 메세지를 가지고 새로운 SMS 메세지 생성
-    } else if (!msgSwitch && gpsSwitch) {
+    } else if (!titleSwitch && gpsSwitch) {
+      message = "${Msg}";
+      smsMessage = new SmsMessage(address, message);  // 메세지 내용만 보내기
+      smsSender.sendSms(smsMessage);
       message = "위치정보\nhttps://map.naver.com/v5/zoom/location/$longitude/$latitude";
       smsMessage = new SmsMessage(address, message); // 번호와 메세지를 가지고 새로운 SMS 메세지 생성
-    } else {
+    } else if (titleSwitch && gpsSwitch) {
       // smsMessage = new SmsMessage(address, message+("\n\n위치정보\nhttps://map.naver.com/v5/zoom/location/$longitude/$latitude").toString()); // 번호와 메세지를 가지고 새로운 SMS 메세지 생성
       // smsSender.sendSms(smsMessage);
-      recipients.add(phoneNum);
-      message += "\n\n위치정보\nhttps://map.naver.com/v5/zoom/location/$longitude/$latitude";
-      await SmsMms.send(recipients: recipients, message: message);
+      message = "[Safer]\n\n${Msg}";
+      smsMessage = new SmsMessage(address, message);  // 메세지 내용만 보내기
+      smsSender.sendSms(smsMessage);
+      message = "[위치정보]\nhttps://map.naver.com/v5/zoom/location/${longitude}/${latitude}";
+      smsMessage = new SmsMessage(address, message);   // 위치정보만 보내기
+      // recipients.add(phoneNum);
+      // await SmsMms.send(recipients: recipients, message: message);   // 전송 완료까지
+    } else {
+      smsMessage = new SmsMessage(address, message);
     }
 
 
@@ -126,7 +151,7 @@ class _SaferState extends State<Safer> {
       _showAlertDialog('알림', '문자가 성공적으로 발송되었습니다.');
     }
 
-    // smsSender.sendSms(smsMessage);
+    smsSender.sendSms(smsMessage);
   }
 
 
@@ -170,8 +195,10 @@ class _SaferState extends State<Safer> {
         desiredAccuracy: LocationAccuracy.best
     );
 
+
+
     setState(() {
-      locationMessage = '위도 : ${position.latitude} \n 경도 : ${position.longitude}';
+      // locationMessage = '위도 : ${position.latitude} \n 경도 : ${position.longitude}';
       latitude = position.latitude;
       longitude = position.latitude;
       locationResult = '위도 : ${position.latitude} \n 경도 : ${position.longitude}';
@@ -184,17 +211,17 @@ class _SaferState extends State<Safer> {
 
 
   // 위치 자동 업데이트
-  void _startLocationUpdates() {
-    location.onLocationChanged.listen((LocationPackage.LocationData newLocation) {
-
-      setState(() {
-        locationResult = "위도 : ${newLocation.latitude} \n경도 : ${newLocation.longitude}";
-        latitude = newLocation.latitude!;
-        longitude = newLocation.longitude!;
-        print("업데이트된 위치 : " + locationResult);
-      });
-    });
-  }
+  // void _startLocationUpdates() {
+  //   location.onLocationChanged.listen((LocationPackage.LocationData newLocation) {
+  //
+  //     setState(() {
+  //       locationResult = "위도 : ${newLocation.latitude} \n경도 : ${newLocation.longitude}";
+  //       latitude = newLocation.latitude!;
+  //       longitude = newLocation.longitude!;
+  //       print("업데이트된 위치 : " + locationResult);
+  //     });
+  //   });
+  // }
 
 
   // 스캔 시작/정지 함수
@@ -250,14 +277,22 @@ class _SaferState extends State<Safer> {
               Container(
                 margin: EdgeInsets.only(top: 10, bottom: 10, left:30, right: 30),
                 child: TextField(
+                  controller: _textEditingController,
+                  maxLength: 149,
                   onChanged: (value) {
                     setState(() {
-                      Msg = value;
-                      print("입력된 메세지 내용 : " + Msg);
+                      if(value.length > 149){
+                        _textEditingController.text = value.substring(0,149); // 길이 제한
+                        _textEditingController.selection = TextSelection.fromPosition(TextPosition(offset: 149)); // 커서 맨 끝으로
+                      }else{
+                        Msg = value;
+                        print("입력된 메세지 내용 : " + Msg);
+                      }
+
                     });
                   },
                   decoration: InputDecoration(
-                    labelText: '보내실 문자 내용을 작성',
+                    labelText: '보내실 문자 내용을 작성하시오',
                     border: OutlineInputBorder(
                       borderRadius:  BorderRadius.circular(12),
                     ),
@@ -268,18 +303,17 @@ class _SaferState extends State<Safer> {
                 children: [
                   Container(
                     margin: EdgeInsets.fromLTRB(30, 0, 30, 0),
-                    child: Text('문자 포함'),
+                    child: Text('제목([Safer]) 포함'),
                   ),
                   Container(
-                    child: Switch(value: msgSwitch, onChanged: (value) {
+                    child: Switch(value: titleSwitch, onChanged: (value) {
                       setState(() {
-                        msgSwitch = value;
+                        titleSwitch = value;
                       });
-                      print('문자 포함 여부 : ' + msgSwitch.toString());
+                      print('제목 포함 여부 : ' + titleSwitch.toString());
                     },
                     ),
                   ),
-
                 ],
               ), Row(
                 children: [
