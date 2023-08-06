@@ -25,6 +25,7 @@ dependencies:
   sms_mms:          # mms 패키지
   fluttertoast: ^8.0.8
   flutter_speed_dial:
+  http:
 
 
 

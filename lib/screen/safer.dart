@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:example/public/menu_bottom.dart';
 import 'package:location/location.dart' as LocationPackage;
@@ -9,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:sms_mms/sms_mms.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
-
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(MaterialApp(home:Safer(),));
@@ -23,6 +24,42 @@ class Safer extends StatefulWidget {
   State<Safer> createState() => _SaferState();
 }
 
+// 서버로 보낼 데이터 관리
+class MessageData {
+  String message = '';
+  String phoneNumber = '';
+  double latitude = 0;
+  double longitude = 0;
+  String sendTime = '';
+  bool isTitleIncluded = false;
+  bool isGpsIncluded = false;
+  String sendLog = '';
+
+  MessageData({
+    required this.message,
+    required this.phoneNumber,
+    required this.latitude,
+    required this.longitude,
+    required this.sendTime,
+    required this.isGpsIncluded,
+    required this.isTitleIncluded,
+    required this.sendLog
+  });
+
+  // JSON 형태로 인코딩하여 서버로 전송 메서드
+  Map<String, dynamic> toJson() {
+    return {
+      'message' : message,
+      'phoneNumber' : phoneNumber,
+      'latitude' : latitude,
+      'longitude' : longitude,
+      'sendTime' : sendTime,
+      'isGpsIncluded' : isGpsIncluded,
+      'isTitleIncluded' : isTitleIncluded,
+      'sendLog' : sendLog,
+    };
+  }
+}
 
 class _SaferState extends State<Safer> {
   String phoneNum = '';
@@ -47,6 +84,22 @@ class _SaferState extends State<Safer> {
 
   TextEditingController _textEditingController = TextEditingController();
 
+  String sendTime = '';
+  bool isTitleIncluded = false;
+  bool isGpsIncluded = false;
+  String sendLog = '';
+
+  // 로그 클래스 메세지 데이터 관리
+  MessageData messageData = MessageData(
+      message: '',
+      phoneNumber: '',
+      latitude: 0,
+      longitude: 0,
+      sendTime: '',
+      isGpsIncluded: false,
+      isTitleIncluded: false,
+      sendLog: '',
+  );
   // FlutterBlue flutterBlue = FlutterBlue.instance;     // 블루투스 인스턴스
   // BluetoothDevice? selectedDevice;
   // BluetoothCharacteristic? characteristic;
@@ -133,22 +186,24 @@ class _SaferState extends State<Safer> {
       smsMessage = new SmsMessage(address, message);
     }
 
+    smsMessage.onStateChanged.listen((event) {
+      setState(() {
+        msgState = event;
+      });
+    });
 
 
-    if (msgState == SmsMessageState.Sent) {
+    if (msgState == SmsMessageState.Fail) {
       // SMS 발송 완료 시
-      print("문자 발송 완료");
-      _showAlertDialog('알림', '문자가 성공적으로 발송되었습니다.');
+      print("문자 전송 실패");
+      _showAlertDialog('알림', '문자 전송에 실패하였습니다.');
     } else if (msgState == SmsMessageState.Delivered) {
       // 수신자에게 전달 완료 시
       print("문자 수신자에게 성공적으로 수신 완료");
       _showAlertDialog('알림', '문자가 성공적으로 발송되었습니다.');
-    } else if (msgState == SmsMessageState.Fail) {
-      print('문자 전송 실패');
-      _showAlertDialog('알림', '문자가 실패적으로 발송되었습니다.');
-    } else if (msgState == SmsMessageState.Sending) {
-      print('문자 발송 중 입니다.' );
-      _showAlertDialog('알림', '문자가 성공적으로 발송되었습니다.');
+    } else if (msgState == SmsMessageState.Sending){
+      print('문자가 발송 되었습니다.');
+      _showAlertDialog('알림', '문자가 발송되었습니다.');
     }
 
     smsSender.sendSms(smsMessage);
@@ -200,7 +255,7 @@ class _SaferState extends State<Safer> {
     setState(() {
       // locationMessage = '위도 : ${position.latitude} \n 경도 : ${position.longitude}';
       latitude = position.latitude;
-      longitude = position.latitude;
+      longitude = position.longitude;
       locationResult = '위도 : ${position.latitude} \n 경도 : ${position.longitude}';
     });
 
@@ -224,7 +279,26 @@ class _SaferState extends State<Safer> {
   // }
 
 
-  // 스캔 시작/정지 함수
+  // 서버에 로그 정보 보내기
+  Future<void> sendData() async {
+    var url = Uri.parse('http://192.168.20.145:3001/FlutterToNode');
+
+    try{
+      var res = await http.post(
+        url,
+        headers: {'Content-Type':'application/json'},
+        body: jsonEncode(messageData.toJson()),
+      );
+
+      if (res.statusCode == 200) {
+        print('로그 정보 전송완료');
+      } else {
+        print('로그 정보 전송 실패');
+      }
+    } catch(e) {
+      print('오류 발생 : $e');
+    }
+  }
 
 
 
@@ -332,7 +406,21 @@ class _SaferState extends State<Safer> {
                   )
                 ],
               ),
-              ElevatedButton(onPressed: sendSMS, child: Text('문자 보내기')),
+              ElevatedButton(
+                  onPressed: () {
+                    messageData.sendLog = msgState.toString();
+                    messageData.isTitleIncluded = titleSwitch;
+                    messageData.latitude = latitude;
+                    messageData.sendTime = DateTime.now().toString();
+                    messageData.phoneNumber = phoneNum;
+                    messageData.longitude = longitude;
+                    messageData.isGpsIncluded = gpsSwitch;
+                    messageData.message = Msg;
+
+                    sendSMS();    // 문자 전송
+                    sendData();   // 서버에 로그 정보 전송
+                  },
+                  child: Text('문자 보내기')),
               if (isLoading)     // isLoading이 true일 때 로딩 창 표시
                 CircularProgressIndicator()
               else               // isLoading이 false일 때 위치 정보 결과 표시
@@ -342,8 +430,7 @@ class _SaferState extends State<Safer> {
                 child: Text('위치 정보 확인하기',),
               ),Container(
                   width: double.infinity,
-                  height: 360,
-                  color: Colors.amber,
+                  height: 280,
                   child: Align(
                     alignment: Alignment.bottomRight,
                     child: SpeedDial(

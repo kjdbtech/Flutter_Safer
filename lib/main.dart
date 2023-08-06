@@ -2,6 +2,8 @@ import 'package:example/screen/safer.dart';
 import 'package:flutter/material.dart';
 import 'package:example/screen/Remote.dart';
 import 'package:example/public/menu_bottom.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 void main() => runApp(MyApp());
 
@@ -37,8 +39,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // 각 탭에 표시할 콘텐츠 위젯들을 리스트로 준비합니다.
   final List<Widget> _tabs = [
-    Safer(),
-    Remote(),
+    Safer(),    // 0
+    Remote(),   // 1
   ];
 
   @override
@@ -63,4 +65,6 @@ class _MyHomePageState extends State<MyHomePage> {
       selectIndex = index; // 선택된 탭의 인덱스를 변경하고 화면을 다시 그립니다.
     });
   }
+
+
 }
